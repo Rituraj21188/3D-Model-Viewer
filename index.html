@@ -74,34 +74,35 @@
     /* Top Controls Bar */
     #top-bar {
       position: absolute;
-      top: 16px;
-      left: 16px;
-      right: 16px;
+      top: 14px;
+      left: 14px;
+      right: 14px;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       pointer-events: none;
       z-index: 10;
+      gap: 8px;
     }
     .control-group {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       pointer-events: auto;
       flex-wrap: wrap;
     }
     .btn {
-      background: rgba(22, 27, 34, 0.85);
+      background: rgba(22, 27, 34, 0.88);
       backdrop-filter: blur(10px);
       color: #e6edf3;
       border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 8px 12px;
+      padding: 7px 11px;
       border-radius: 8px;
       font-size: 12px;
       font-weight: 500;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       user-select: none;
       transition: all 0.2s ease;
       -webkit-tap-highlight-color: transparent;
@@ -119,11 +120,54 @@
       color: #ffffff;
     }
 
+    /* Mobile / Android Gesture Status Badge */
+    #touch-status {
+      position: absolute;
+      top: 66px;
+      left: 14px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 11px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      pointer-events: auto;
+      z-index: 10;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    #touch-status .indicator {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 6px #22c55e;
+      transition: background 0.2s ease;
+    }
+    #touch-status.active {
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    #touch-status.active .indicator {
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+    }
+    #touch-status .close-hint {
+      cursor: pointer;
+      margin-left: 4px;
+      font-size: 12px;
+      color: #64748b;
+    }
+
     /* Bottom Reset Button */
     #bottom-bar {
       position: absolute;
-      bottom: 20px;
-      right: 20px;
+      bottom: 18px;
+      right: 18px;
       z-index: 10;
     }
   </style>
@@ -144,14 +188,30 @@
     <div class="progress-container">
       <div id="progress-bar"></div>
     </div>
-    <span id="progress-text">Loading 3D Model (0%)...</span>
+    <span id="progress-text">Loading 3D Model...</span>
   </div>
 
   <div id="top-bar">
+    <!-- Background Themes -->
+    <div class="control-group">
+      <button class="btn active" id="bg-dark">🌑 Dark</button>
+      <button class="btn" id="bg-sky">🌤️ Sky</button>
+      <button class="btn" id="bg-sunset">🌅 Sunset</button>
+      <button class="btn" id="bg-light">⚪ Light</button>
+    </div>
+
+    <!-- Features -->
     <div class="control-group">
       <button class="btn" id="btn-contours">🗺️ Contours: OFF</button>
       <button class="btn" id="btn-autorotate">⟳ Auto-Rotate: OFF</button>
     </div>
+  </div>
+
+  <!-- Touch Notification Badge -->
+  <div id="touch-status">
+    <span class="indicator"></span>
+    <span id="touch-status-text">Touch Controls Active</span>
+    <span class="close-hint" id="touch-close" title="Dismiss">✕</span>
   </div>
 
   <div id="bottom-bar">
@@ -166,12 +226,12 @@
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-    // 1. Scene & Setup
+    // 1. Scene & Renderer Setup
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x121214);
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
     camera.position.set(0, 2, 5);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -181,6 +241,7 @@
     renderer.toneMappingExposure = 1.0;
     container.appendChild(renderer.domElement);
 
+    // 2. Touch Controls for Android & Desktop
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -193,19 +254,86 @@
       TWO: THREE.TOUCH.DOLLY_PAN
     };
 
-    // 2. Studio Lighting Setup
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-    hemiLight.position.set(0, 20, 0);
+    // Live Touch Status Indicators
+    const touchBadge = document.getElementById('touch-status');
+    const touchText = document.getElementById('touch-status-text');
+    document.getElementById('touch-close').addEventListener('click', () => {
+      touchBadge.style.display = 'none';
+    });
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
-    keyLight.position.set(5, 10, 7);
+    window.addEventListener('touchstart', (e) => {
+      touchBadge.classList.add('active');
+      if (e.touches.length === 1) {
+        touchText.innerText = '1-Finger Orbiting';
+      } else if (e.touches.length >= 2) {
+        touchText.innerText = '2-Finger Zoom / Pan';
+      }
+    }, { passive: true });
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    fillLight.position.set(-5, 5, -5);
+    window.addEventListener('touchend', (e) => {
+      if (e.touches.length === 0) {
+        touchBadge.classList.remove('active');
+        touchText.innerText = 'Touch Controls Ready';
+      }
+    }, { passive: true });
+
+    // 3. Background Texture Presets (Gradients)
+    function createGradientTexture(topColor, bottomColor) {
+      const c = document.createElement('canvas');
+      c.width = 16;
+      c.height = 512;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createLinearGradient(0, 0, 0, 512);
+      grad.addColorStop(0, topColor);
+      grad.addColorStop(1, bottomColor);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 16, 512);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    const bgThemes = {
+      dark: new THREE.Color(0x121214),
+      sky: createGradientTexture('#38bdf8', '#e0f2fe'),
+      sunset: createGradientTexture('#3b0764', '#f97316'),
+      light: new THREE.Color(0xf1f5f9)
+    };
+
+    function setBackground(theme) {
+      scene.background = bgThemes[theme];
+      renderer.toneMappingExposure = (theme === 'light') ? 0.9 : 1.0;
+    }
+
+    const bgBtns = [
+      { id: 'bg-dark', theme: 'dark' },
+      { id: 'bg-sky', theme: 'sky' },
+      { id: 'bg-sunset', theme: 'sunset' },
+      { id: 'bg-light', theme: 'light' }
+    ];
+
+    bgBtns.forEach(({ id, theme }) => {
+      const b = document.getElementById(id);
+      b.addEventListener('click', () => {
+        bgBtns.forEach(btn => document.getElementById(btn.id).classList.remove('active'));
+        b.classList.add('active');
+        setBackground(theme);
+      });
+    });
+
+    // 4. Studio Lighting Rig
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x475569, 1.2);
+    hemiLight.position.set(0, 30, 0);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    keyLight.position.set(12, 18, 14);
+
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    fillLight.position.set(-12, 10, -10);
 
     scene.add(hemiLight, keyLight, fillLight);
 
-    // 3. Load Main Model
+    // 5. Load Model & Contours
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
@@ -214,7 +342,6 @@
 
     const MODEL_PATH = './3DModel-v1.glb';
     let initialCameraState = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
-    let modelCenter = new THREE.Vector3();
 
     const progressBar = document.getElementById('progress-bar');
     const progressText = document.getElementById('progress-text');
@@ -229,30 +356,28 @@
       (gltf) => {
         const model = gltf.scene;
 
+        // Auto-center model to (0,0,0)
         const box = new THREE.Box3().setFromObject(model);
-        modelCenter = box.getCenter(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
 
-        // Center terrain
-        model.position.x -= modelCenter.x;
-        model.position.y -= modelCenter.y;
-        model.position.z -= modelCenter.z;
-
+        model.position.sub(center);
         scene.add(model);
 
+        // Frame Camera
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov = camera.fov * (Math.PI / 180);
         let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
 
-        camera.position.set(0, maxDim * 0.4, cameraZ);
+        camera.position.set(0, maxDim * 0.45, cameraZ);
         camera.lookAt(0, 0, 0);
         controls.target.set(0, 0, 0);
 
         initialCameraState.pos.copy(camera.position);
         initialCameraState.target.copy(controls.target);
 
-        // Load contours after model centering offset is established
-        loadContours('./contours.geojson', modelCenter);
+        // Load contours with exact model coordinate bounds
+        loadContours('./contours.geojson', box, center);
 
         overlay.style.opacity = '0';
         setTimeout(() => { overlay.style.display = 'none'; }, 500);
@@ -261,69 +386,97 @@
         if (xhr.lengthComputable) {
           const percent = Math.round((xhr.loaded / xhr.total) * 100);
           progressBar.style.width = percent + '%';
-          progressText.innerText = `Loading 3D Model (${percent}%)...`;
+          progressText.innerText = `Loading 3D Model... ${percent}%`;
         } else {
-          progressText.innerText = `Loading 3D Model...`;
+          progressText.innerText = 'Loading 3D Model...';
         }
       },
       (error) => {
-        console.error('Error loading model:', error);
+        console.error('Model load error:', error);
         progressText.innerText = 'Failed to load model.';
         progressText.style.color = '#ef4444';
       }
     );
 
-    // 4. Contour Line Parsing & GeoJSON Generation
-    function loadContours(url, centerOffset) {
+    // 6. Universal GeoJSON Contour Parser & Projector
+    function loadContours(url, modelBox, modelCenter) {
       fetch(url)
         .then((res) => {
-          if (!res.ok) throw new Error('No contours.geojson file found');
+          if (!res.ok) throw new Error('contours.geojson not accessible');
           return res.json();
         })
         .then((geojson) => {
+          // Calculate GeoJSON coordinate extent (min/max)
+          let minX = Infinity, maxX = -Infinity;
+          let minY = Infinity, maxY = -Infinity;
+          let minZ = Infinity, maxZ = -Infinity;
+
+          const lines = [];
+
+          geojson.features.forEach((f) => {
+            if (!f.geometry) return;
+            const coordsList = f.geometry.type === 'MultiLineString' 
+              ? f.geometry.coordinates 
+              : [f.geometry.coordinates];
+
+            // In case elevation is inside properties.ELEV instead of vertex Z
+            const propElev = (f.properties && f.properties.ELEV != null) ? Number(f.properties.ELEV) : 0;
+
+            coordsList.forEach((coords) => {
+              const poly = [];
+              coords.forEach((pt) => {
+                const px = pt[0];
+                const py = pt[1];
+                const pz = (pt.length > 2 && pt[2] !== 0) ? pt[2] : propElev;
+
+                minX = Math.min(minX, px); maxX = Math.max(maxX, px);
+                minY = Math.min(minY, py); maxY = Math.max(maxY, py);
+                minZ = Math.min(minZ, pz); maxZ = Math.max(maxZ, pz);
+
+                poly.push([px, py, pz]);
+              });
+              lines.push(poly);
+            });
+          });
+
+          const geoCenterX = (minX + maxX) / 2;
+          const geoCenterY = (minY + maxY) / 2;
+          const geoCenterZ = (minZ + maxZ) / 2;
+
+          // Determine scale ratio between GeoJSON coordinates and Mesh coordinates
+          const geoSpanX = Math.max(maxX - minX, 0.001);
+          const modelSpanX = modelBox.max.x - modelBox.min.x;
+          const scale = (modelSpanX > 0 && Math.abs(geoSpanX - modelSpanX) > 2) ? (modelSpanX / geoSpanX) : 1.0;
+
           const lineMaterial = new THREE.LineBasicMaterial({
-            color: 0xf59e0b, // Amber highlight
+            color: 0xf59e0b, // Amber contour line
             linewidth: 2,
             depthTest: true
           });
 
-          geojson.features.forEach((feature) => {
-            const geom = feature.geometry;
-            if (!geom) return;
+          lines.forEach((poly) => {
+            const points = [];
+            poly.forEach(([gx, gy, gz]) => {
+              // Convert projected UTM (Easting gx, Northing gy, Elev gz) to centered Three.js Space
+              const x = (gx - geoCenterX) * scale;
+              const y = ((gz - geoCenterZ) * scale) + 0.15; // +0.15m height offset prevents z-fighting
+              const z = -((gy - geoCenterY) * scale);       // Invert North to Three.js -Z
 
-            let lineStrings = [];
-            if (geom.type === 'LineString') {
-              lineStrings = [geom.coordinates];
-            } else if (geom.type === 'MultiLineString') {
-              lineStrings = geom.coordinates;
-            }
-
-            lineStrings.forEach((coords) => {
-              const points = [];
-              coords.forEach(([x, y, z]) => {
-                // GeoJSON format: [X, Y, Elevation]
-                // Three.js coordinates: X = X, Y = Elevation (Up), Z = -Y (North)
-                // Offset +0.08m in elevation (Y) prevents surface z-fighting
-                const posX = x - centerOffset.x;
-                const posY = (z || 0) - centerOffset.y + 0.08;
-                const posZ = -(y - centerOffset.z);
-
-                points.push(new THREE.Vector3(posX, posY, posZ));
-              });
-
-              const lineGeom = new THREE.BufferGeometry().setFromPoints(points);
-              const line = new THREE.Line(lineGeom, lineMaterial);
-              contourGroup.add(line);
+              points.push(new THREE.Vector3(x, y, z));
             });
+
+            const geom = new THREE.BufferGeometry().setFromPoints(points);
+            const lineMesh = new THREE.Line(geom, lineMaterial);
+            contourGroup.add(lineMesh);
           });
         })
         .catch((err) => {
-          console.warn(err.message);
+          console.warn('Contour file issue:', err);
           document.getElementById('btn-contours').style.display = 'none';
         });
     }
 
-    // 5. UI Controls
+    // 7. UI Button Listeners
     const contourBtn = document.getElementById('btn-contours');
     contourBtn.addEventListener('click', () => {
       contourGroup.visible = !contourGroup.visible;
