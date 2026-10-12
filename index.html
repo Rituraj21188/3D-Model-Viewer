@@ -9,34 +9,29 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      touch-action: none; /* Prevents pull-to-refresh & browser scrolling on Android */
-      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
     }
     body, html {
       width: 100%;
       height: 100%;
       overflow: hidden;
       background-color: #121214;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-      user-select: none;
-      -webkit-user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
     #canvas-container {
       width: 100%;
       height: 100%;
       display: block;
-      position: absolute;
-      top: 0;
-      left: 0;
     }
 
+    /* Loading Overlay */
     #loading-overlay {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: radial-gradient(circle at center, #1e2026 0%, #0c0d11 100%);
+      background: rgba(18, 18, 20, 0.95);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -45,175 +40,94 @@
       transition: opacity 0.5s ease;
     }
     .spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid rgba(255, 255, 255, 0.08);
-      border-top-color: #38bdf8;
+      width: 44px;
+      height: 44px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #3b82f6;
       border-radius: 50%;
-      animation: spin 0.85s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
-      margin-bottom: 24px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-    .progress-track {
-      width: min(280px, 80vw);
+    .progress-container {
+      width: 240px;
       height: 6px;
-      background: rgba(255, 255, 255, 0.12);
-      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
       overflow: hidden;
-      margin-bottom: 14px;
-      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+      margin-bottom: 12px;
     }
     #progress-bar {
       width: 0%;
       height: 100%;
-      background: linear-gradient(90deg, #2563eb, #38bdf8);
+      background: #3b82f6;
       transition: width 0.2s ease;
-      border-radius: 999px;
     }
     #progress-text {
-      color: #cbd5e1;
+      color: #e2e8f0;
       font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.5px;
     }
 
+    /* Top Controls Bar */
     #top-bar {
       position: absolute;
-      top: 14px;
-      left: 14px;
-      right: 14px;
+      top: 16px;
+      left: 16px;
+      right: 16px;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      gap: 10px;
       pointer-events: none;
       z-index: 10;
     }
-    .control-cluster {
+    .control-group {
       display: flex;
-      gap: 7px;
+      gap: 8px;
       pointer-events: auto;
       flex-wrap: wrap;
     }
     .btn {
-      background: rgba(18, 22, 30, 0.85);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      color: #f1f5f9;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      padding: 9px 13px;
-      border-radius: 10px;
+      background: rgba(22, 27, 34, 0.85);
+      backdrop-filter: blur(10px);
+      color: #e6edf3;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 8px 12px;
+      border-radius: 8px;
       font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.2px;
+      font-weight: 500;
       cursor: pointer;
-      display: inline-flex;
+      display: flex;
       align-items: center;
       gap: 6px;
-      transition: all 0.18s ease;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      user-select: none;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
     }
     .btn:hover {
-      background: rgba(30, 38, 52, 0.95);
+      background: rgba(35, 43, 54, 0.95);
       border-color: rgba(255, 255, 255, 0.3);
     }
     .btn:active {
-      transform: scale(0.95);
+      transform: scale(0.96);
     }
     .btn.active {
       background: #2563eb;
-      border-color: #60a5fa;
+      border-color: #3b82f6;
       color: #ffffff;
-      box-shadow: 0 0 16px rgba(37, 99, 235, 0.5);
     }
 
     /* Bottom Reset Button */
-    #bottom-right-bar {
+    #bottom-bar {
       position: absolute;
       bottom: 20px;
-      right: 16px;
+      right: 20px;
       z-index: 10;
-      pointer-events: auto;
-    }
-
-    #touch-sensor-card {
-      position: absolute;
-      bottom: 20px;
-      left: 16px;
-      max-width: calc(100vw - 120px);
-      background: rgba(15, 23, 42, 0.88);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      padding: 10px 14px;
-      border-radius: 12px;
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-      pointer-events: auto;
-      transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-    .touch-sensor-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    .touch-status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #94a3b8;
-    }
-    .status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 8px #10b981;
-      transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
-    }
-    .status-dot.active {
-      background: #38bdf8;
-      box-shadow: 0 0 12px #38bdf8;
-      transform: scale(1.35);
-    }
-    .touch-dismiss-btn {
-      background: none;
-      border: none;
-      color: #64748b;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      padding: 0 4px;
-      line-height: 1;
-    }
-    .touch-dismiss-btn:hover {
-      color: #f1f5f9;
-    }
-    .touch-instructions {
-      font-size: 11px;
-      color: #cbd5e1;
-      line-height: 1.4;
-    }
-    .touch-active-state {
-      font-size: 11px;
-      color: #38bdf8;
-      font-weight: 600;
-      min-height: 15px;
-      transition: opacity 0.2s;
     }
   </style>
 
-  <!-- ES Module Polyfill and CDN mappings -->
   <script type="importmap">
     {
       "imports": {
@@ -225,52 +139,25 @@
 </head>
 <body>
 
-  <!-- Loading Screen (Pure percentage / progress, no MB/KB size revealed) -->
   <div id="loading-overlay">
     <div class="spinner"></div>
-    <div class="progress-track">
+    <div class="progress-container">
       <div id="progress-bar"></div>
     </div>
-    <span id="progress-text">Preparing 3D environment...</span>
+    <span id="progress-text">Loading 3D Model (0%)...</span>
   </div>
 
   <div id="top-bar">
-    <!-- Background Scene Selector -->
-    <div class="control-cluster" id="bg-controls">
-      <button class="btn active" id="btn-dark">🌑 Dark</button>
-      <button class="btn" id="btn-sky">🌤️ Sky</button>
-      <button class="btn" id="btn-sunset">🌅 Sunset</button>
-      <button class="btn" id="btn-clean">⚪ Light</button>
-    </div>
-
-    <!-- Auto-Rotate toggle -->
-    <div class="control-cluster">
+    <div class="control-group">
+      <button class="btn" id="btn-contours">🗺️ Contours: OFF</button>
       <button class="btn" id="btn-autorotate">⟳ Auto-Rotate: OFF</button>
     </div>
   </div>
 
-  <!-- Touch Notification & Gesture Feedback Widget -->
-  <div id="touch-sensor-card">
-    <div class="touch-sensor-header">
-      <div class="touch-status-badge">
-        <span class="status-dot" id="touch-dot"></span>
-        <span id="sensor-state-title">Touch Controls Active</span>
-      </div>
-      <button class="touch-dismiss-btn" id="btn-dismiss-sensor" title="Dismiss">×</button>
-    </div>
-    <div class="touch-instructions">
-      • 1 Finger: Orbit &amp; Rotate<br>
-      • 2 Fingers: Pinch to Zoom &amp; Pan
-    </div>
-    <div class="touch-active-state" id="touch-live-status">Gesture: Standby (Touch Ready)</div>
+  <div id="bottom-bar">
+    <button class="btn" id="btn-reset">↺ Reset View</button>
   </div>
 
-  <!-- Bottom Reset View Button -->
-  <div id="bottom-right-bar">
-    <button class="btn" id="btn-reset">↺ Reset</button>
-  </div>
-
-  <!-- Canvas Container -->
   <div id="canvas-container"></div>
 
   <script type="module">
@@ -279,7 +166,7 @@
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-    // 1. Scene, Camera, and High-Performance Renderer
+    // 1. Scene & Setup
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x121214);
@@ -291,11 +178,9 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMappingExposure = 1.0;
     container.appendChild(renderer.domElement);
 
-    // 2. Mobile-Friendly OrbitControls with Touch Mapping
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -308,64 +193,19 @@
       TWO: THREE.TOUCH.DOLLY_PAN
     };
 
-    // 3. Dedicated Studio Lighting Rig
-    const studioLights = new THREE.Group();
-    
-    // Balanced hemisphere ambient light
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x334155, 1.4);
+    // 2. Studio Lighting Setup
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
     hemiLight.position.set(0, 20, 0);
-    studioLights.add(hemiLight);
 
-    // Key directional light for crisp highlights
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
-    keyLight.position.set(6, 12, 8);
-    studioLights.add(keyLight);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    keyLight.position.set(5, 10, 7);
 
-    // Fill directional light to soften shadows
-    const fillLight = new THREE.DirectionalLight(0xe2e8f0, 1.1);
-    fillLight.position.set(-6, 6, -6);
-    studioLights.add(fillLight);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    fillLight.position.set(-5, 5, -5);
 
-    // Rim light for edge separation
-    const rimLight = new THREE.DirectionalLight(0x94a3b8, 0.8);
-    rimLight.position.set(0, -6, -8);
-    studioLights.add(rimLight);
+    scene.add(hemiLight, keyLight, fillLight);
 
-    scene.add(studioLights);
-
-    function createGradientTexture(topColor, bottomColor) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 16;
-      canvas.height = 512;
-      const ctx = canvas.getContext('2d');
-      const gradient = ctx.createLinearGradient(0, 0, 0, 512);
-      gradient.addColorStop(0, topColor);
-      gradient.addColorStop(1, bottomColor);
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, 16, 512);
-
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.mapping = THREE.EquirectangularReflectionMapping;
-      return texture;
-    }
-
-    const bgTextures = {
-      sky: createGradientTexture('#0284c7', '#e0f2fe'),
-      sunset: createGradientTexture('#311042', '#f97316')
-    };
-
-    function applyBackgroundPreset(preset) {
-      if (preset === 'dark') {
-        scene.background = new THREE.Color(0x121214);
-      } else if (preset === 'sky') {
-        scene.background = bgTextures.sky;
-      } else if (preset === 'sunset') {
-        scene.background = bgTextures.sunset;
-      } else if (preset === 'clean') {
-        scene.background = new THREE.Color(0xf1f5f9);
-      }
-    }
-
+    // 3. Load Main Model
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
@@ -373,140 +213,153 @@
     gltfLoader.setDRACOLoader(dracoLoader);
 
     const MODEL_PATH = './3DModel-v1.glb';
-    const initialCamState = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+    let initialCameraState = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+    let modelCenter = new THREE.Vector3();
 
     const progressBar = document.getElementById('progress-bar');
     const progressText = document.getElementById('progress-text');
     const overlay = document.getElementById('loading-overlay');
+
+    const contourGroup = new THREE.Group();
+    contourGroup.visible = false;
+    scene.add(contourGroup);
 
     gltfLoader.load(
       MODEL_PATH,
       (gltf) => {
         const model = gltf.scene;
 
-        // Auto-center model at world origin
         const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
+        modelCenter = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
 
-        model.position.x += (model.position.x - center.x);
-        model.position.y += (model.position.y - center.y);
-        model.position.z += (model.position.z - center.z);
+        // Center terrain
+        model.position.x -= modelCenter.x;
+        model.position.y -= modelCenter.y;
+        model.position.z -= modelCenter.z;
 
         scene.add(model);
 
-        // Frame camera automatically to model bounding box
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov = camera.fov * (Math.PI / 180);
-        let cameraDist = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.55;
+        let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
 
-        camera.position.set(0, maxDim * 0.45, cameraDist);
+        camera.position.set(0, maxDim * 0.4, cameraZ);
         camera.lookAt(0, 0, 0);
         controls.target.set(0, 0, 0);
 
-        initialCamState.pos.copy(camera.position);
-        initialCamState.target.copy(controls.target);
+        initialCameraState.pos.copy(camera.position);
+        initialCameraState.target.copy(controls.target);
 
-        // Smooth transition after loading completes
-        progressBar.style.width = '100%';
-        progressText.innerText = 'Ready!';
+        // Load contours after model centering offset is established
+        loadContours('./contours.geojson', modelCenter);
+
         overlay.style.opacity = '0';
         setTimeout(() => { overlay.style.display = 'none'; }, 500);
       },
       (xhr) => {
-        // STRICT REQUIREMENT: Only percentage displayed, NO MB/KB size revealed
-        if (xhr.lengthComputable && xhr.total > 0) {
-          const percent = Math.min(Math.round((xhr.loaded / xhr.total) * 100), 99);
+        if (xhr.lengthComputable) {
+          const percent = Math.round((xhr.loaded / xhr.total) * 100);
           progressBar.style.width = percent + '%';
-          progressText.innerText = `Loading 3D Model... ${percent}%`;
+          progressText.innerText = `Loading 3D Model (${percent}%)...`;
         } else {
-          // Fallback animation when length is uncomputable
-          progressText.innerText = 'Loading 3D Model...';
-          progressBar.style.width = '70%';
+          progressText.innerText = `Loading 3D Model...`;
         }
       },
       (error) => {
         console.error('Error loading model:', error);
-        progressText.innerText = 'Unable to load model. Verify file path.';
+        progressText.innerText = 'Failed to load model.';
         progressText.style.color = '#ef4444';
       }
     );
 
-    const touchDot = document.getElementById('touch-dot');
-    const touchLiveStatus = document.getElementById('touch-live-status');
-    const touchSensorCard = document.getElementById('touch-sensor-card');
+    // 4. Contour Line Parsing & GeoJSON Generation
+    function loadContours(url, centerOffset) {
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) throw new Error('No contours.geojson file found');
+          return res.json();
+        })
+        .then((geojson) => {
+          const lineMaterial = new THREE.LineBasicMaterial({
+            color: 0xf59e0b, // Amber highlight
+            linewidth: 2,
+            depthTest: true
+          });
 
-    window.addEventListener('touchstart', (e) => {
-      touchDot.classList.add('active');
-      if (e.touches.length === 1) {
-        touchLiveStatus.innerText = 'Gesture: 1-Finger Orbiting';
-      } else if (e.touches.length === 2) {
-        touchLiveStatus.innerText = 'Gesture: 2-Finger Zoom / Pan';
+          geojson.features.forEach((feature) => {
+            const geom = feature.geometry;
+            if (!geom) return;
+
+            let lineStrings = [];
+            if (geom.type === 'LineString') {
+              lineStrings = [geom.coordinates];
+            } else if (geom.type === 'MultiLineString') {
+              lineStrings = geom.coordinates;
+            }
+
+            lineStrings.forEach((coords) => {
+              const points = [];
+              coords.forEach(([x, y, z]) => {
+                // GeoJSON format: [X, Y, Elevation]
+                // Three.js coordinates: X = X, Y = Elevation (Up), Z = -Y (North)
+                // Offset +0.08m in elevation (Y) prevents surface z-fighting
+                const posX = x - centerOffset.x;
+                const posY = (z || 0) - centerOffset.y + 0.08;
+                const posZ = -(y - centerOffset.z);
+
+                points.push(new THREE.Vector3(posX, posY, posZ));
+              });
+
+              const lineGeom = new THREE.BufferGeometry().setFromPoints(points);
+              const line = new THREE.Line(lineGeom, lineMaterial);
+              contourGroup.add(line);
+            });
+          });
+        })
+        .catch((err) => {
+          console.warn(err.message);
+          document.getElementById('btn-contours').style.display = 'none';
+        });
+    }
+
+    // 5. UI Controls
+    const contourBtn = document.getElementById('btn-contours');
+    contourBtn.addEventListener('click', () => {
+      contourGroup.visible = !contourGroup.visible;
+      if (contourGroup.visible) {
+        contourBtn.classList.add('active');
+        contourBtn.innerText = '🗺️ Contours: ON';
       } else {
-        touchLiveStatus.innerText = `Gesture: Multi-Touch (${e.touches.length} fingers)`;
+        contourBtn.classList.remove('active');
+        contourBtn.innerText = '🗺️ Contours: OFF';
       }
-    }, { passive: true });
-
-    window.addEventListener('touchend', (e) => {
-      if (e.touches.length === 0) {
-        touchDot.classList.remove('active');
-        touchLiveStatus.innerText = 'Gesture: Standby (Touch Ready)';
-      } else if (e.touches.length === 1) {
-        touchLiveStatus.innerText = 'Gesture: 1-Finger Orbiting';
-      }
-    }, { passive: true });
-
-    document.getElementById('btn-dismiss-sensor').addEventListener('click', () => {
-      touchSensorCard.style.opacity = '0';
-      touchSensorCard.style.transform = 'translateY(10px)';
-      setTimeout(() => { touchSensorCard.style.display = 'none'; }, 300);
     });
 
-    // Auto-Rotate Button
-    const btnAutoRotate = document.getElementById('btn-autorotate');
-    btnAutoRotate.addEventListener('click', () => {
+    const autoRotateBtn = document.getElementById('btn-autorotate');
+    autoRotateBtn.addEventListener('click', () => {
       controls.autoRotate = !controls.autoRotate;
       if (controls.autoRotate) {
-        btnAutoRotate.classList.add('active');
-        btnAutoRotate.innerText = '⟳ Auto-Rotate: ON';
+        autoRotateBtn.classList.add('active');
+        autoRotateBtn.innerText = '⟳ Auto-Rotate: ON';
       } else {
-        btnAutoRotate.classList.remove('active');
-        btnAutoRotate.innerText = '⟳ Auto-Rotate: OFF';
+        autoRotateBtn.classList.remove('active');
+        autoRotateBtn.innerText = '⟳ Auto-Rotate: OFF';
       }
     });
 
-    // Background Scene Preset Buttons
-    const bgButtons = [
-      { id: 'btn-dark', type: 'dark' },
-      { id: 'btn-sky', type: 'sky' },
-      { id: 'btn-sunset', type: 'sunset' },
-      { id: 'btn-clean', type: 'clean' }
-    ];
-
-    bgButtons.forEach(({ id, type }) => {
-      const button = document.getElementById(id);
-      button.addEventListener('click', () => {
-        bgButtons.forEach(b => document.getElementById(b.id).classList.remove('active'));
-        button.classList.add('active');
-        applyBackgroundPreset(type);
-      });
-    });
-
-    // Reset View Button
     document.getElementById('btn-reset').addEventListener('click', () => {
-      camera.position.copy(initialCamState.pos);
-      controls.target.copy(initialCamState.target);
+      camera.position.copy(initialCameraState.pos);
+      controls.target.copy(initialCameraState.target);
       controls.update();
     });
 
-    // 7. Responsive Viewport Handler
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // 8. Animation Render Loop
     function animate() {
       requestAnimationFrame(animate);
       controls.update();
