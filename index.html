@@ -9,7 +9,7 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      touch-action: none; /* Prevents unwanted browser pull-to-refresh on mobile */
+      touch-action: none;
     }
     body, html {
       width: 100%;
@@ -23,6 +23,7 @@
       height: 100%;
       display: block;
     }
+
     /* Loading Overlay */
     #loading-overlay {
       position: absolute;
@@ -39,8 +40,8 @@
       transition: opacity 0.5s ease;
     }
     .spinner {
-      width: 48px;
-      height: 48px;
+      width: 44px;
+      height: 44px;
       border: 4px solid rgba(255, 255, 255, 0.1);
       border-top-color: #3b82f6;
       border-radius: 50%;
@@ -66,215 +67,52 @@
     }
     #progress-text {
       color: #e2e8f0;
-      font-size: 14px;
+      font-size: 13px;
       letter-spacing: 0.5px;
     }
-    /* Overlay UI Controls */
-    #ui-controls {
+
+    /* Top Controls Bar */
+    #top-bar {
       position: absolute;
-      bottom: 20px;
-      right: 20px;
+      top: 16px;
+      left: 16px;
+      right: 16px;
       display: flex;
-      gap: 10px;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
       z-index: 10;
     }
+    .control-group {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+      flex-wrap: wrap;
+    }
     .btn {
-      background: rgba(30, 41, 59, 0.8);
-      backdrop-filter: blur(8px);
-      color: #fff;
+      background: rgba(22, 27, 34, 0.85);
+      backdrop-filter: blur(10px);
+      color: #e6edf3;
       border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 10px 14px;
+      padding: 8px 12px;
       border-radius: 8px;
-      font-size: 13px;
+      font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 6px;
       user-select: none;
+      transition: all 0.2s ease;
       -webkit-tap-highlight-color: transparent;
+    }
+    .btn:hover {
+      background: rgba(35, 43, 54, 0.95);
+      border-color: rgba(255, 255, 255, 0.3);
     }
     .btn:active {
       transform: scale(0.96);
-      background: rgba(59, 130, 246, 0.8);
     }
-    #hint {
-      position: absolute;
-      top: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 12px;
-      background: rgba(0, 0, 0, 0.4);
-      padding: 6px 14px;
-      border-radius: 20px;
-      pointer-events: none;
-    }
-  </style>
-
-  <!-- Import maps polyfill for Three.js ES Modules -->
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-      }
-    }
-  </script>
-</head>
-<body>
-
-  <div id="loading-overlay">
-    <div class="spinner"></div>
-    <div class="progress-container">
-      <div id="progress-bar"></div>
-    </div>
-    <span id="progress-text">Loading 3D Model (0%)...</span>
-  </div>
-
-  <div id="hint">Drag to rotate • Pinch / Scroll to zoom • Two-finger drag to pan</div>
-
-  <div id="ui-controls">
-    <button class="btn" id="btn-reset">↺ Reset View</button>
-  </div>
-
-  <div id="canvas-container"></div>
-
-  <script type="module">
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-
-    // 1. Scene & Setup
-    const container = document.getElementById('canvas-container');
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x121214);
-
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 2, 5);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // High DPI cap for mobile performance
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
-    container.appendChild(renderer.domElement);
-
-    // 2. Touch-enabled Orbit Controls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.screenSpacePanning = true;
-    controls.maxDistance = 500;
-    controls.minDistance = 0.1;
-
-    // Enable touch gestures (rotate with 1 finger, pinch-zoom + pan with 2 fingers)
-    controls.touches = {
-      ONE: THREE.TOUCH.ROTATE,
-      TWO: THREE.TOUCH.DOLLY_PAN
-    };
-
-    // 3. Lighting (HDRI-like Ambient & Directional setup)
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-    hemiLight.position.set(0, 20, 0);
-    scene.add(hemiLight);
-
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.8);
-    dirLight1.position.set(5, 10, 7);
-    scene.add(dirLight1);
-
-    const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight2.position.set(-5, 5, -5);
-    scene.add(dirLight2);
-
-    // 4. Draco & GLTF Loader
-    const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-
-    const gltfLoader = new GLTFLoader();
-    gltfLoader.setDRACOLoader(dracoLoader);
-
-    // Path matching your repository: "3DModel-v1.glb"
-    const MODEL_PATH = './3DModel-v1.glb';
-
-    let initialCameraState = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
-
-    const progressBar = document.getElementById('progress-bar');
-    const progressText = document.getElementById('progress-text');
-    const overlay = document.getElementById('loading-overlay');
-
-    gltfLoader.load(
-      MODEL_PATH,
-      (gltf) => {
-        const model = gltf.scene;
-
-        // Auto-center and fit to camera view
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-
-        // Center origin
-        model.position.x += (model.position.x - center.x);
-        model.position.y += (model.position.y - center.y);
-        model.position.z += (model.position.z - center.z);
-
-        scene.add(model);
-
-        // Position camera according to bounding box size
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const fov = camera.fov * (Math.PI / 180);
-        let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
-
-        camera.position.set(0, maxDim * 0.5, cameraZ);
-        camera.lookAt(0, 0, 0);
-        controls.target.set(0, 0, 0);
-
-        initialCameraState.pos.copy(camera.position);
-        initialCameraState.target.copy(controls.target);
-
-        // Hide overlay smoothly
-        overlay.style.opacity = '0';
-        setTimeout(() => { overlay.style.display = 'none'; }, 500);
-      },
-      (xhr) => {
-        if (xhr.lengthComputable) {
-          const percent = Math.round((xhr.loaded / xhr.total) * 100);
-          progressBar.style.width = percent + '%';
-          progressText.innerText = `Loading 3D Model (${percent}%)...`;
-        } else {
-          // Fallback if content-length is not reported
-          const mb = (xhr.loaded / (1024 * 1024)).toFixed(1);
-          progressText.innerText = `Downloaded ${mb} MB...`;
-        }
-      },
-      (error) => {
-        console.error('Error loading model:', error);
-        progressText.innerText = 'Failed to load model. Check file path.';
-        progressText.style.color = '#ef4444';
-      }
-    );
-
-    // 5. Reset View Button
-    document.getElementById('btn-reset').addEventListener('click', () => {
-      camera.position.copy(initialCameraState.pos);
-      controls.target.copy(initialCameraState.target);
-      controls.update();
-    });
-
-    // 6. Handle Responsive Resize
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    // 7. Animation Loop
-    function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    }
-    animate();
-  </script>
-</body>
-</html>
+    .btn.active {
+      background: #2563eb;
+      border-color: #3b82f6;
