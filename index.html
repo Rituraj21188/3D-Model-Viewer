@@ -203,6 +203,7 @@
     <!-- Features -->
     <div class="control-group">
       <button class="btn" id="btn-contours">🗺️ Contours: OFF</button>
+      <button class="btn" id="btn-labels">🏷️ Labels: ON</button>
       <button class="btn" id="btn-autorotate">⟳ Auto-Rotate: OFF</button>
     </div>
   </div>
@@ -254,7 +255,6 @@
       TWO: THREE.TOUCH.DOLLY_PAN
     };
 
-    // Live Touch Status Indicators
     const touchBadge = document.getElementById('touch-status');
     const touchText = document.getElementById('touch-status-text');
     document.getElementById('touch-close').addEventListener('click', () => {
@@ -277,7 +277,7 @@
       }
     }, { passive: true });
 
-    // 3. Background Texture Presets (Gradients)
+    // 3. Background Texture Presets
     function createGradientTexture(topColor, bottomColor) {
       const c = document.createElement('canvas');
       c.width = 16;
@@ -351,12 +351,14 @@
     contourGroup.visible = false;
     scene.add(contourGroup);
 
+    const labelGroup = new THREE.Group();
+    contourGroup.add(labelGroup);
+
     gltfLoader.load(
       MODEL_PATH,
       (gltf) => {
         const model = gltf.scene;
 
-        // Auto-center model to (0,0,0)
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
@@ -364,7 +366,6 @@
         model.position.sub(center);
         scene.add(model);
 
-        // Frame Camera
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov = camera.fov * (Math.PI / 180);
         let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
@@ -376,8 +377,7 @@
         initialCameraState.pos.copy(camera.position);
         initialCameraState.target.copy(controls.target);
 
-        // Load contours with exact model coordinate bounds
-        loadContours('./contours.geojson', box, center);
+        loadContours('./contours.geojson', box, center, maxDim);
 
         overlay.style.opacity = '0';
         setTimeout(() => { overlay.style.display = 'none'; }, 500);
@@ -398,15 +398,53 @@
       }
     );
 
-    // 6. Universal GeoJSON Contour Parser & Projector
-    function loadContours(url, modelBox, modelCenter) {
+    // 6. 3D Text Badge Generator for Elevations
+    function makeElevationSprite(text, scale) {
+      const c = document.createElement('canvas');
+      c.width = 256;
+      c.height = 96;
+      const ctx = c.getContext('2d');
+
+      // Rounded badge pill
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.roundRect(8, 8, 240, 80, 20);
+      ctx.fill();
+      ctx.stroke();
+
+      // Bold text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 36px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 128, 48);
+
+      const texture = new THREE.CanvasTexture(c);
+      texture.colorSpace = THREE.SRGBColorSpace;
+
+      const spriteMat = new THREE.SpriteMaterial({
+        map: texture,
+        depthTest: false,
+        depthWrite: false,
+        transparent: true
+      });
+
+      const sprite = new THREE.Sprite(spriteMat);
+      const spriteSize = scale * 0.035;
+      sprite.scale.set(spriteSize * 2.5, spriteSize, 1);
+      return sprite;
+    }
+
+    // 7. Robust Contour & Label Processor
+    function loadContours(url, modelBox, modelCenter, maxDim) {
       fetch(url)
         .then((res) => {
-          if (!res.ok) throw new Error('contours.geojson not accessible');
+          if (!res.ok) throw new Error('contours.geojson not found');
           return res.json();
         })
         .then((geojson) => {
-          // Calculate GeoJSON coordinate extent (min/max)
           let minX = Infinity, maxX = -Infinity;
           let minY = Infinity, maxY = -Infinity;
           let minZ = Infinity, maxZ = -Infinity;
@@ -419,7 +457,6 @@
               ? f.geometry.coordinates 
               : [f.geometry.coordinates];
 
-            // In case elevation is inside properties.ELEV instead of vertex Z
             const propElev = (f.properties && f.properties.ELEV != null) ? Number(f.properties.ELEV) : 0;
 
             coordsList.forEach((coords) => {
@@ -435,7 +472,7 @@
 
                 poly.push([px, py, pz]);
               });
-              lines.push(poly);
+              lines.push({ poly, elevation: propElev });
             });
           });
 
@@ -443,40 +480,73 @@
           const geoCenterY = (minY + maxY) / 2;
           const geoCenterZ = (minZ + maxZ) / 2;
 
-          // Determine scale ratio between GeoJSON coordinates and Mesh coordinates
           const geoSpanX = Math.max(maxX - minX, 0.001);
           const modelSpanX = modelBox.max.x - modelBox.min.x;
           const scale = (modelSpanX > 0 && Math.abs(geoSpanX - modelSpanX) > 2) ? (modelSpanX / geoSpanX) : 1.0;
 
-          const lineMaterial = new THREE.LineBasicMaterial({
-            color: 0xf59e0b, // Amber contour line
-            linewidth: 2,
-            depthTest: true
+          // Crucial: polygonOffset and depthWrite: false prevent ground occlusion
+          const normalLineMaterial = new THREE.LineBasicMaterial({
+            color: 0xf59e0b,
+            linewidth: 1.5,
+            depthTest: true,
+            depthWrite: false,
+            polygonOffset: true,
+            polygonOffsetFactor: -2.0,
+            polygonOffsetUnits: -4.0
           });
 
-          lines.forEach((poly) => {
+          const indexLineMaterial = new THREE.LineBasicMaterial({
+            color: 0xfbbf24,
+            linewidth: 3,
+            depthTest: true,
+            depthWrite: false,
+            polygonOffset: true,
+            polygonOffsetFactor: -3.0,
+            polygonOffsetUnits: -6.0
+          });
+
+          const labeledElevations = new Set();
+
+          lines.forEach(({ poly, elevation }) => {
+            if (poly.length < 2) return;
             const points = [];
+            const isIndex = (elevation % 5 === 0);
+
             poly.forEach(([gx, gy, gz]) => {
-              // Convert projected UTM (Easting gx, Northing gy, Elev gz) to centered Three.js Space
               const x = (gx - geoCenterX) * scale;
-              const y = ((gz - geoCenterZ) * scale) + 0.15; // +0.15m height offset prevents z-fighting
-              const z = -((gy - geoCenterY) * scale);       // Invert North to Three.js -Z
+              // +0.35m vertical elevation offset lifts lines off ground polygons
+              const y = ((gz - geoCenterZ) * scale) + 0.35;
+              const z = -((gy - geoCenterY) * scale);
 
               points.push(new THREE.Vector3(x, y, z));
             });
 
             const geom = new THREE.BufferGeometry().setFromPoints(points);
-            const lineMesh = new THREE.Line(geom, lineMaterial);
+            const lineMesh = new THREE.Line(geom, isIndex ? indexLineMaterial : normalLineMaterial);
+            lineMesh.renderOrder = 200;
             contourGroup.add(lineMesh);
+
+            // Add Elevation Label badge on representative contour curves
+            if (poly.length > 8 && !labeledElevations.has(elevation)) {
+              labeledElevations.add(elevation);
+              const midIdx = Math.floor(points.length / 2);
+              const labelPos = points[midIdx].clone().add(new THREE.Vector3(0, 0.6, 0));
+
+              const sprite = makeElevationSprite(`${elevation} m`, maxDim);
+              sprite.position.copy(labelPos);
+              sprite.renderOrder = 300;
+              labelGroup.add(sprite);
+            }
           });
         })
         .catch((err) => {
           console.warn('Contour file issue:', err);
           document.getElementById('btn-contours').style.display = 'none';
+          document.getElementById('btn-labels').style.display = 'none';
         });
     }
 
-    // 7. UI Button Listeners
+    // 8. UI Button Listeners
     const contourBtn = document.getElementById('btn-contours');
     contourBtn.addEventListener('click', () => {
       contourGroup.visible = !contourGroup.visible;
@@ -486,6 +556,18 @@
       } else {
         contourBtn.classList.remove('active');
         contourBtn.innerText = '🗺️ Contours: OFF';
+      }
+    });
+
+    const labelsBtn = document.getElementById('btn-labels');
+    labelsBtn.addEventListener('click', () => {
+      labelGroup.visible = !labelGroup.visible;
+      if (labelGroup.visible) {
+        labelsBtn.classList.add('active');
+        labelsBtn.innerText = '🏷️ Labels: ON';
+      } else {
+        labelsBtn.classList.remove('active');
+        labelsBtn.innerText = '🏷️ Labels: OFF';
       }
     });
 
