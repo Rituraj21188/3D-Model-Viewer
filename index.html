@@ -9,19 +9,25 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      touch-action: none;
+      touch-action: none; /* Disables standard pull-to-refresh & browser scrolling on Android */
+      -webkit-tap-highlight-color: transparent;
     }
     body, html {
       width: 100%;
       height: 100%;
       overflow: hidden;
       background-color: #121214;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
     }
     #canvas-container {
       width: 100%;
       height: 100%;
       display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
     }
 
     /* Loading Overlay */
@@ -31,7 +37,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(18, 18, 20, 0.95);
+      background: radial-gradient(circle at center, #1e2026 0%, #0d0e12 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -40,94 +46,177 @@
       transition: opacity 0.5s ease;
     }
     .spinner {
-      width: 44px;
-      height: 44px;
-      border: 4px solid rgba(255, 255, 255, 0.1);
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(255, 255, 255, 0.08);
       border-top-color: #3b82f6;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-bottom: 20px;
+      animation: spin 0.9s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+      margin-bottom: 22px;
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-    .progress-container {
-      width: 240px;
+    .progress-track {
+      width: min(260px, 80vw);
       height: 6px;
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
       overflow: hidden;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
     }
     #progress-bar {
       width: 0%;
       height: 100%;
-      background: #3b82f6;
+      background: linear-gradient(90deg, #3b82f6, #60a5fa);
       transition: width 0.2s ease;
+      border-radius: 999px;
     }
     #progress-text {
-      color: #e2e8f0;
+      color: #cbd5e1;
       font-size: 13px;
-      letter-spacing: 0.5px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
     }
 
-    /* Top Controls Bar */
+    /* UI Overlay Containers */
     #top-bar {
       position: absolute;
-      top: 16px;
-      left: 16px;
-      right: 16px;
+      top: 14px;
+      left: 14px;
+      right: 14px;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      gap: 10px;
       pointer-events: none;
       z-index: 10;
     }
-    .control-group {
+    .control-cluster {
       display: flex;
       gap: 8px;
       pointer-events: auto;
       flex-wrap: wrap;
     }
     .btn {
-      background: rgba(22, 27, 34, 0.85);
-      backdrop-filter: blur(10px);
-      color: #e6edf3;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 8px 12px;
-      border-radius: 8px;
+      background: rgba(18, 22, 30, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 9px 13px;
+      border-radius: 10px;
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
+      letter-spacing: 0.2px;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-      user-select: none;
-      transition: all 0.2s ease;
-      -webkit-tap-highlight-color: transparent;
+      transition: all 0.18s ease;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
     }
     .btn:hover {
-      background: rgba(35, 43, 54, 0.95);
+      background: rgba(30, 38, 52, 0.95);
       border-color: rgba(255, 255, 255, 0.3);
     }
     .btn:active {
-      transform: scale(0.96);
+      transform: scale(0.95);
     }
     .btn.active {
       background: #2563eb;
-      border-color: #3b82f6;
+      border-color: #60a5fa;
       color: #ffffff;
+      box-shadow: 0 0 16px rgba(37, 99, 235, 0.5);
     }
 
-    /* Bottom Reset Button */
-    #bottom-bar {
+    /* Reset Button */
+    #bottom-right-bar {
       position: absolute;
       bottom: 20px;
-      right: 20px;
+      right: 16px;
       z-index: 10;
+      pointer-events: auto;
+    }
+
+    /* Mobile Touch Sensor & Gesture Notification Card */
+    #touch-sensor-card {
+      position: absolute;
+      bottom: 20px;
+      left: 16px;
+      max-width: calc(100vw - 120px);
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 10px 14px;
+      border-radius: 12px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      pointer-events: auto;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .touch-sensor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .touch-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+    }
+    .status-dot.active {
+      background: #38bdf8;
+      box-shadow: 0 0 12px #38bdf8;
+      transform: scale(1.35);
+    }
+    .touch-dismiss-btn {
+      background: none;
+      border: none;
+      color: #64748b;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    .touch-dismiss-btn:hover {
+      color: #f1f5f9;
+    }
+    .touch-instructions {
+      font-size: 11px;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+    .touch-active-state {
+      font-size: 11px;
+      color: #38bdf8;
+      font-weight: 600;
+      min-height: 15px;
+      transition: opacity 0.2s;
     }
   </style>
 
+  <!-- ES Module Polyfill and CDN mappings -->
   <script type="importmap">
     {
       "imports": {
@@ -139,34 +228,52 @@
 </head>
 <body>
 
+  <!-- Loading Screen -->
   <div id="loading-overlay">
     <div class="spinner"></div>
-    <div class="progress-container">
+    <div class="progress-track">
       <div id="progress-bar"></div>
     </div>
-    <span id="progress-text">Loading 3D Model (0%)...</span>
+    <span id="progress-text">Initializing 3D Viewer...</span>
   </div>
 
-  <!-- Top Controls -->
+  <!-- Header Controls -->
   <div id="top-bar">
-    <!-- Light Scenes -->
-    <div class="control-group">
-      <button class="btn active" id="light-studio">💡 Studio</button>
-      <button class="btn" id="light-sun">☀️ Outdoor Sun</button>
-      <button class="btn" id="light-dramatic">🌙 Dramatic</button>
+    <!-- Light presets -->
+    <div class="control-cluster" id="light-controls">
+      <button class="btn active" id="btn-studio">💡 Studio</button>
+      <button class="btn" id="btn-sun">☀️ Sun</button>
+      <button class="btn" id="btn-dramatic">🌙 Dramatic</button>
     </div>
 
-    <!-- Auto Rotate Toggle -->
-    <div class="control-group">
+    <!-- Auto-Rotate toggle -->
+    <div class="control-cluster">
       <button class="btn" id="btn-autorotate">⟳ Auto-Rotate: OFF</button>
     </div>
   </div>
 
-  <!-- Bottom Reset View -->
-  <div id="bottom-bar">
-    <button class="btn" id="btn-reset">↺ Reset View</button>
+  <!-- Touch Notification & Gesture Feedback Widget -->
+  <div id="touch-sensor-card">
+    <div class="touch-sensor-header">
+      <div class="touch-status-badge">
+        <span class="status-dot" id="touch-dot"></span>
+        <span id="sensor-state-title">Touch Controls Active</span>
+      </div>
+      <button class="touch-dismiss-btn" id="btn-dismiss-sensor" title="Dismiss">×</button>
+    </div>
+    <div class="touch-instructions">
+      • 1 Finger: Orbit &amp; Rotate<br>
+      • 2 Fingers: Pinch to Zoom &amp; Pan
+    </div>
+    <div class="touch-active-state" id="touch-live-status">Gesture: Standby</div>
   </div>
 
+  <!-- Bottom Reset View Button -->
+  <div id="bottom-right-bar">
+    <button class="btn" id="btn-reset">↺ Reset</button>
+  </div>
+
+  <!-- Canvas Container -->
   <div id="canvas-container"></div>
 
   <script type="module">
@@ -175,10 +282,10 @@
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-    // 1. Scene, Camera & Renderer
+    // 1. Scene, Camera, and Renderer Setup
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x121214);
+    scene.background = new THREE.Color(0x13151b);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 2, 5);
@@ -187,10 +294,11 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 1.1;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(renderer.domElement);
 
-    // 2. Controls
+    // 2. Mobile-Friendly OrbitControls with Touch Mapping
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -198,68 +306,78 @@
     controls.autoRotate = false;
     controls.autoRotateSpeed = 2.0;
 
+    // Explicit mobile touch configuration
     controls.touches = {
       ONE: THREE.TOUCH.ROTATE,
       TWO: THREE.TOUCH.DOLLY_PAN
     };
 
-    // 3. Dynamic Lighting Presets
+    // 3. Lighting Presets
     const lightGroup = new THREE.Group();
     scene.add(lightGroup);
 
-    function setLightScene(type) {
-      // Clear existing lights
+    function applyLightingPreset(preset) {
       while (lightGroup.children.length > 0) {
         lightGroup.remove(lightGroup.children[0]);
       }
 
-      if (type === 'studio') {
-        scene.background.set(0x151619);
-        renderer.toneMappingExposure = 1.0;
+      if (preset === 'studio') {
+        scene.background.set(0x13151b);
+        renderer.toneMappingExposure = 1.1;
 
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x334155, 1.4);
         hemiLight.position.set(0, 20, 0);
 
-        const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
-        keyLight.position.set(5, 10, 7);
+        const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        keyLight.position.set(6, 12, 8);
 
-        const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        fillLight.position.set(-5, 5, -5);
+        const fillLight = new THREE.DirectionalLight(0xe2e8f0, 1.0);
+        fillLight.position.set(-6, 6, -6);
 
         lightGroup.add(hemiLight, keyLight, fillLight);
 
-      } else if (type === 'sun') {
-        scene.background.set(0x1a2130);
-        renderer.toneMappingExposure = 1.2;
+      } else if (preset === 'sun') {
+        scene.background.set(0x1a2333);
+        renderer.toneMappingExposure = 1.25;
 
-        const skyLight = new THREE.HemisphereLight(0x87ceeb, 0x3d2b1f, 1.0);
-        skyLight.position.set(0, 30, 0);
+        const skyAmbient = new THREE.HemisphereLight(0x7dd3fc, 0x3d352e, 1.2);
+        skyAmbient.position.set(0, 30, 0);
 
-        const sunLight = new THREE.DirectionalLight(0xfffaed, 2.5);
-        sunLight.position.set(12, 20, 10);
+        const sunDirect = new THREE.DirectionalLight(0xfff5e6, 3.2);
+        sunDirect.position.set(12, 22, 10);
 
-        lightGroup.add(skyLight, sunLight);
+        const softBounce = new THREE.DirectionalLight(0x94a3b8, 0.6);
+        softBounce.position.set(-10, -5, -8);
 
-      } else if (type === 'dramatic') {
-        scene.background.set(0x0a0a0c);
-        renderer.toneMappingExposure = 1.4;
+        lightGroup.add(skyAmbient, sunDirect, softBounce);
 
-        const spot = new THREE.SpotLight(0xffffff, 4.0, 100, Math.PI / 4, 0.4);
-        spot.position.set(0, 15, 8);
+      } else if (preset === 'dramatic') {
+        // High-contrast, vivid lighting setup that keeps meshes visible
+        scene.background.set(0x0c0e14);
+        renderer.toneMappingExposure = 1.35;
 
-        const rimLight = new THREE.DirectionalLight(0x38bdf8, 2.2);
-        rimLight.position.set(-10, -5, -10);
+        // Base ambient fill to eliminate black pitch-dark zones
+        const baseFill = new THREE.AmbientLight(0x475569, 1.4);
 
-        const fill = new THREE.AmbientLight(0x151515, 0.6);
+        // Strong crisp top-front key light
+        const mainKey = new THREE.DirectionalLight(0xffffff, 3.5);
+        mainKey.position.set(7, 14, 9);
 
-        lightGroup.add(spot, rimLight, fill);
+        // Electric cyan rim light for sharp contours
+        const cyanRim = new THREE.DirectionalLight(0x38bdf8, 3.0);
+        cyanRim.position.set(-9, 8, -9);
+
+        // Warm magenta bounce for depth and dimensionality
+        const warmBounce = new THREE.DirectionalLight(0xf43f5e, 1.4);
+        warmBounce.position.set(-6, -4, 5);
+
+        lightGroup.add(baseFill, mainKey, cyanRim, warmBounce);
       }
     }
 
-    // Initialize with Studio scene
-    setLightScene('studio');
+    applyLightingPreset('studio');
 
-    // 4. Load Model
+    // 4. Draco & GLTF Loader Configuration
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
@@ -267,7 +385,7 @@
     gltfLoader.setDRACOLoader(dracoLoader);
 
     const MODEL_PATH = './3DModel-v1.glb';
-    let initialCameraState = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+    const initialCamState = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
 
     const progressBar = document.getElementById('progress-bar');
     const progressText = document.getElementById('progress-text');
@@ -278,95 +396,132 @@
       (gltf) => {
         const model = gltf.scene;
 
+        // Calculate model bounding box and center
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
 
+        // Center model geometry to world origin (0, 0, 0)
         model.position.x += (model.position.x - center.x);
         model.position.y += (model.position.y - center.y);
         model.position.z += (model.position.z - center.z);
 
         scene.add(model);
 
+        // Fit camera to bounding box dimensions
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov = camera.fov * (Math.PI / 180);
-        let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
+        let cameraDist = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.55;
 
-        camera.position.set(0, maxDim * 0.4, cameraZ);
+        camera.position.set(0, maxDim * 0.45, cameraDist);
         camera.lookAt(0, 0, 0);
         controls.target.set(0, 0, 0);
 
-        initialCameraState.pos.copy(camera.position);
-        initialCameraState.target.copy(controls.target);
+        initialCamState.pos.copy(camera.position);
+        initialCamState.target.copy(controls.target);
 
+        // Fade out loader
         overlay.style.opacity = '0';
         setTimeout(() => { overlay.style.display = 'none'; }, 500);
       },
       (xhr) => {
-        if (xhr.lengthComputable) {
+        if (xhr.lengthComputable && xhr.total > 0) {
           const percent = Math.round((xhr.loaded / xhr.total) * 100);
+          const loadedMb = (xhr.loaded / (1024 * 1024)).toFixed(1);
+          const totalMb = (xhr.total / (1024 * 1024)).toFixed(1);
           progressBar.style.width = percent + '%';
-          progressText.innerText = `Loading 3D Model (${percent}%)...`;
+          progressText.innerText = `Loading: ${loadedMb} MB / ${totalMb} MB (${percent}%)`;
         } else {
           const mb = (xhr.loaded / (1024 * 1024)).toFixed(1);
-          progressText.innerText = `Downloaded ${mb} MB...`;
+          progressText.innerText = `Downloading: ${mb} MB loaded...`;
         }
       },
       (error) => {
         console.error('Error loading model:', error);
-        progressText.innerText = 'Failed to load model. Check file path.';
+        progressText.innerText = 'Unable to load 3DModel-v1.glb. Verify file path.';
         progressText.style.color = '#ef4444';
       }
     );
 
-    // 5. UI Event Listeners
-    // Auto-Rotate Button
-    const autoRotateBtn = document.getElementById('btn-autorotate');
-    autoRotateBtn.addEventListener('click', () => {
+    // 5. Mobile / Android Touch Sensor Notification Feedback
+    const touchDot = document.getElementById('touch-dot');
+    const touchLiveStatus = document.getElementById('touch-live-status');
+    const touchSensorCard = document.getElementById('touch-sensor-card');
+
+    window.addEventListener('touchstart', (e) => {
+      touchDot.classList.add('active');
+      if (e.touches.length === 1) {
+        touchLiveStatus.innerText = 'Gesture: 1-Finger Orbiting';
+      } else if (e.touches.length === 2) {
+        touchLiveStatus.innerText = 'Gesture: 2-Finger Zoom / Pan';
+      } else {
+        touchLiveStatus.innerText = `Gesture: Multi-Touch (${e.touches.length} fingers)`;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      if (e.touches.length === 0) {
+        touchDot.classList.remove('active');
+        touchLiveStatus.innerText = 'Gesture: Standby (Touch Ready)';
+      } else if (e.touches.length === 1) {
+        touchLiveStatus.innerText = 'Gesture: 1-Finger Orbiting';
+      }
+    }, { passive: true });
+
+    document.getElementById('btn-dismiss-sensor').addEventListener('click', () => {
+      touchSensorCard.style.opacity = '0';
+      touchSensorCard.style.transform = 'translateY(10px)';
+      setTimeout(() => { touchSensorCard.style.display = 'none'; }, 300);
+    });
+
+    // 6. UI Button Event Handlers
+    // Auto-Rotate
+    const btnAutoRotate = document.getElementById('btn-autorotate');
+    btnAutoRotate.addEventListener('click', () => {
       controls.autoRotate = !controls.autoRotate;
       if (controls.autoRotate) {
-        autoRotateBtn.classList.add('active');
-        autoRotateBtn.innerText = '⟳ Auto-Rotate: ON';
+        btnAutoRotate.classList.add('active');
+        btnAutoRotate.innerText = '⟳ Auto-Rotate: ON';
       } else {
-        autoRotateBtn.classList.remove('active');
-        autoRotateBtn.innerText = '⟳ Auto-Rotate: OFF';
+        btnAutoRotate.classList.remove('active');
+        btnAutoRotate.innerText = '⟳ Auto-Rotate: OFF';
       }
     });
 
-    // Light Scene Buttons
-    const lightButtons = [
-      { id: 'light-studio', type: 'studio' },
-      { id: 'light-sun', type: 'sun' },
-      { id: 'light-dramatic', type: 'dramatic' }
+    // Light Presets
+    const lightBtns = [
+      { id: 'btn-studio', type: 'studio' },
+      { id: 'btn-sun', type: 'sun' },
+      { id: 'btn-dramatic', type: 'dramatic' }
     ];
 
-    lightButtons.forEach(({ id, type }) => {
-      const btn = document.getElementById(id);
-      btn.addEventListener('click', () => {
-        lightButtons.forEach(b => document.getElementById(b.id).classList.remove('active'));
-        btn.classList.add('active');
-        setLightScene(type);
+    lightBtns.forEach(({ id, type }) => {
+      const button = document.getElementById(id);
+      button.addEventListener('click', () => {
+        lightBtns.forEach(b => document.getElementById(b.id).classList.remove('active'));
+        button.classList.add('active');
+        applyLightingPreset(type);
       });
     });
 
     // Reset View
     document.getElementById('btn-reset').addEventListener('click', () => {
-      camera.position.copy(initialCameraState.pos);
-      controls.target.copy(initialCameraState.target);
+      camera.position.copy(initialCamState.pos);
+      controls.target.copy(initialCamState.target);
       controls.update();
     });
 
-    // 6. Resize Handler
+    // 7. Responsive Viewport Handler
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // 7. Render Loop
+    // 8. Main Render Loop
     function animate() {
       requestAnimationFrame(animate);
-      controls.update(); // Updates autoRotate & damping
+      controls.update();
       renderer.render(scene, camera);
     }
     animate();
