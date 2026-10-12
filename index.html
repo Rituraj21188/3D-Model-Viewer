@@ -116,3 +116,260 @@
     .btn.active {
       background: #2563eb;
       border-color: #3b82f6;
+      color: #ffffff;
+    }
+
+    /* Bottom Reset Button */
+    #bottom-bar {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 10;
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div class="progress-container">
+      <div id="progress-bar"></div>
+    </div>
+    <span id="progress-text">Loading 3D Model (0%)...</span>
+  </div>
+
+  <!-- Top Controls -->
+  <div id="top-bar">
+    <!-- Light Scenes -->
+    <div class="control-group">
+      <button class="btn active" id="light-studio">💡 Studio</button>
+      <button class="btn" id="light-sun">☀️ Outdoor Sun</button>
+      <button class="btn" id="light-dramatic">🌙 Dramatic</button>
+    </div>
+
+    <!-- Auto Rotate Toggle -->
+    <div class="control-group">
+      <button class="btn" id="btn-autorotate">⟳ Auto-Rotate: OFF</button>
+    </div>
+  </div>
+
+  <!-- Bottom Reset View -->
+  <div id="bottom-bar">
+    <button class="btn" id="btn-reset">↺ Reset View</button>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+    // 1. Scene, Camera & Renderer
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x121214);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 2, 5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    container.appendChild(renderer.domElement);
+
+    // 2. Controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.screenSpacePanning = true;
+    controls.autoRotate = false;
+    controls.autoRotateSpeed = 2.0;
+
+    controls.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY_PAN
+    };
+
+    // 3. Dynamic Lighting Presets
+    const lightGroup = new THREE.Group();
+    scene.add(lightGroup);
+
+    function setLightScene(type) {
+      // Clear existing lights
+      while (lightGroup.children.length > 0) {
+        lightGroup.remove(lightGroup.children[0]);
+      }
+
+      if (type === 'studio') {
+        scene.background.set(0x151619);
+        renderer.toneMappingExposure = 1.0;
+
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+        hemiLight.position.set(0, 20, 0);
+
+        const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        keyLight.position.set(5, 10, 7);
+
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        fillLight.position.set(-5, 5, -5);
+
+        lightGroup.add(hemiLight, keyLight, fillLight);
+
+      } else if (type === 'sun') {
+        scene.background.set(0x1a2130);
+        renderer.toneMappingExposure = 1.2;
+
+        const skyLight = new THREE.HemisphereLight(0x87ceeb, 0x3d2b1f, 1.0);
+        skyLight.position.set(0, 30, 0);
+
+        const sunLight = new THREE.DirectionalLight(0xfffaed, 2.5);
+        sunLight.position.set(12, 20, 10);
+
+        lightGroup.add(skyLight, sunLight);
+
+      } else if (type === 'dramatic') {
+        scene.background.set(0x0a0a0c);
+        renderer.toneMappingExposure = 1.4;
+
+        const spot = new THREE.SpotLight(0xffffff, 4.0, 100, Math.PI / 4, 0.4);
+        spot.position.set(0, 15, 8);
+
+        const rimLight = new THREE.DirectionalLight(0x38bdf8, 2.2);
+        rimLight.position.set(-10, -5, -10);
+
+        const fill = new THREE.AmbientLight(0x151515, 0.6);
+
+        lightGroup.add(spot, rimLight, fill);
+      }
+    }
+
+    // Initialize with Studio scene
+    setLightScene('studio');
+
+    // 4. Load Model
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+
+    const gltfLoader = new GLTFLoader();
+    gltfLoader.setDRACOLoader(dracoLoader);
+
+    const MODEL_PATH = './3DModel-v1.glb';
+    let initialCameraState = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const overlay = document.getElementById('loading-overlay');
+
+    gltfLoader.load(
+      MODEL_PATH,
+      (gltf) => {
+        const model = gltf.scene;
+
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+
+        model.position.x += (model.position.x - center.x);
+        model.position.y += (model.position.y - center.y);
+        model.position.z += (model.position.z - center.z);
+
+        scene.add(model);
+
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = camera.fov * (Math.PI / 180);
+        let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
+
+        camera.position.set(0, maxDim * 0.4, cameraZ);
+        camera.lookAt(0, 0, 0);
+        controls.target.set(0, 0, 0);
+
+        initialCameraState.pos.copy(camera.position);
+        initialCameraState.target.copy(controls.target);
+
+        overlay.style.opacity = '0';
+        setTimeout(() => { overlay.style.display = 'none'; }, 500);
+      },
+      (xhr) => {
+        if (xhr.lengthComputable) {
+          const percent = Math.round((xhr.loaded / xhr.total) * 100);
+          progressBar.style.width = percent + '%';
+          progressText.innerText = `Loading 3D Model (${percent}%)...`;
+        } else {
+          const mb = (xhr.loaded / (1024 * 1024)).toFixed(1);
+          progressText.innerText = `Downloaded ${mb} MB...`;
+        }
+      },
+      (error) => {
+        console.error('Error loading model:', error);
+        progressText.innerText = 'Failed to load model. Check file path.';
+        progressText.style.color = '#ef4444';
+      }
+    );
+
+    // 5. UI Event Listeners
+    // Auto-Rotate Button
+    const autoRotateBtn = document.getElementById('btn-autorotate');
+    autoRotateBtn.addEventListener('click', () => {
+      controls.autoRotate = !controls.autoRotate;
+      if (controls.autoRotate) {
+        autoRotateBtn.classList.add('active');
+        autoRotateBtn.innerText = '⟳ Auto-Rotate: ON';
+      } else {
+        autoRotateBtn.classList.remove('active');
+        autoRotateBtn.innerText = '⟳ Auto-Rotate: OFF';
+      }
+    });
+
+    // Light Scene Buttons
+    const lightButtons = [
+      { id: 'light-studio', type: 'studio' },
+      { id: 'light-sun', type: 'sun' },
+      { id: 'light-dramatic', type: 'dramatic' }
+    ];
+
+    lightButtons.forEach(({ id, type }) => {
+      const btn = document.getElementById(id);
+      btn.addEventListener('click', () => {
+        lightButtons.forEach(b => document.getElementById(b.id).classList.remove('active'));
+        btn.classList.add('active');
+        setLightScene(type);
+      });
+    });
+
+    // Reset View
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      camera.position.copy(initialCameraState.pos);
+      controls.target.copy(initialCameraState.target);
+      controls.update();
+    });
+
+    // 6. Resize Handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // 7. Render Loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update(); // Updates autoRotate & damping
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
