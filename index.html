@@ -9,7 +9,7 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      touch-action: none; /* Disables standard pull-to-refresh & browser scrolling on Android */
+      touch-action: none; /* Prevents pull-to-refresh & browser scrolling on Android */
       -webkit-tap-highlight-color: transparent;
     }
     body, html {
@@ -30,14 +30,13 @@
       left: 0;
     }
 
-    /* Loading Overlay */
     #loading-overlay {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: radial-gradient(circle at center, #1e2026 0%, #0d0e12 100%);
+      background: radial-gradient(circle at center, #1e2026 0%, #0c0d11 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -46,19 +45,19 @@
       transition: opacity 0.5s ease;
     }
     .spinner {
-      width: 48px;
-      height: 48px;
+      width: 50px;
+      height: 50px;
       border: 4px solid rgba(255, 255, 255, 0.08);
-      border-top-color: #3b82f6;
+      border-top-color: #38bdf8;
       border-radius: 50%;
-      animation: spin 0.9s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
-      margin-bottom: 22px;
+      animation: spin 0.85s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+      margin-bottom: 24px;
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
     .progress-track {
-      width: min(260px, 80vw);
+      width: min(280px, 80vw);
       height: 6px;
       background: rgba(255, 255, 255, 0.12);
       border-radius: 999px;
@@ -69,7 +68,7 @@
     #progress-bar {
       width: 0%;
       height: 100%;
-      background: linear-gradient(90deg, #3b82f6, #60a5fa);
+      background: linear-gradient(90deg, #2563eb, #38bdf8);
       transition: width 0.2s ease;
       border-radius: 999px;
     }
@@ -77,10 +76,9 @@
       color: #cbd5e1;
       font-size: 13px;
       font-weight: 500;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.4px;
     }
 
-    /* UI Overlay Containers */
     #top-bar {
       position: absolute;
       top: 14px;
@@ -95,14 +93,14 @@
     }
     .control-cluster {
       display: flex;
-      gap: 8px;
+      gap: 7px;
       pointer-events: auto;
       flex-wrap: wrap;
     }
     .btn {
       background: rgba(18, 22, 30, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       color: #f1f5f9;
       border: 1px solid rgba(255, 255, 255, 0.16);
       padding: 9px 13px;
@@ -131,7 +129,7 @@
       box-shadow: 0 0 16px rgba(37, 99, 235, 0.5);
     }
 
-    /* Reset Button */
+    /* Bottom Reset Button */
     #bottom-right-bar {
       position: absolute;
       bottom: 20px;
@@ -140,7 +138,6 @@
       pointer-events: auto;
     }
 
-    /* Mobile Touch Sensor & Gesture Notification Card */
     #touch-sensor-card {
       position: absolute;
       bottom: 20px;
@@ -193,7 +190,7 @@
       background: none;
       border: none;
       color: #64748b;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: bold;
       cursor: pointer;
       padding: 0 4px;
@@ -228,22 +225,22 @@
 </head>
 <body>
 
-  <!-- Loading Screen -->
+  <!-- Loading Screen (Pure percentage / progress, no MB/KB size revealed) -->
   <div id="loading-overlay">
     <div class="spinner"></div>
     <div class="progress-track">
       <div id="progress-bar"></div>
     </div>
-    <span id="progress-text">Initializing 3D Viewer...</span>
+    <span id="progress-text">Preparing 3D environment...</span>
   </div>
 
-  <!-- Header Controls -->
   <div id="top-bar">
-    <!-- Light presets -->
-    <div class="control-cluster" id="light-controls">
-      <button class="btn active" id="btn-studio">💡 Studio</button>
-      <button class="btn" id="btn-sun">☀️ Sun</button>
-      <button class="btn" id="btn-dramatic">🌙 Dramatic</button>
+    <!-- Background Scene Selector -->
+    <div class="control-cluster" id="bg-controls">
+      <button class="btn active" id="btn-dark">🌑 Dark</button>
+      <button class="btn" id="btn-sky">🌤️ Sky</button>
+      <button class="btn" id="btn-sunset">🌅 Sunset</button>
+      <button class="btn" id="btn-clean">⚪ Light</button>
     </div>
 
     <!-- Auto-Rotate toggle -->
@@ -265,7 +262,7 @@
       • 1 Finger: Orbit &amp; Rotate<br>
       • 2 Fingers: Pinch to Zoom &amp; Pan
     </div>
-    <div class="touch-active-state" id="touch-live-status">Gesture: Standby</div>
+    <div class="touch-active-state" id="touch-live-status">Gesture: Standby (Touch Ready)</div>
   </div>
 
   <!-- Bottom Reset View Button -->
@@ -282,10 +279,10 @@
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-    // 1. Scene, Camera, and Renderer Setup
+    // 1. Scene, Camera, and High-Performance Renderer
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x13151b);
+    scene.background = new THREE.Color(0x121214);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 2, 5);
@@ -306,78 +303,69 @@
     controls.autoRotate = false;
     controls.autoRotateSpeed = 2.0;
 
-    // Explicit mobile touch configuration
     controls.touches = {
       ONE: THREE.TOUCH.ROTATE,
       TWO: THREE.TOUCH.DOLLY_PAN
     };
 
-    // 3. Lighting Presets
-    const lightGroup = new THREE.Group();
-    scene.add(lightGroup);
+    // 3. Dedicated Studio Lighting Rig
+    const studioLights = new THREE.Group();
+    
+    // Balanced hemisphere ambient light
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x334155, 1.4);
+    hemiLight.position.set(0, 20, 0);
+    studioLights.add(hemiLight);
 
-    function applyLightingPreset(preset) {
-      while (lightGroup.children.length > 0) {
-        lightGroup.remove(lightGroup.children[0]);
-      }
+    // Key directional light for crisp highlights
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    keyLight.position.set(6, 12, 8);
+    studioLights.add(keyLight);
 
-      if (preset === 'studio') {
-        scene.background.set(0x13151b);
-        renderer.toneMappingExposure = 1.1;
+    // Fill directional light to soften shadows
+    const fillLight = new THREE.DirectionalLight(0xe2e8f0, 1.1);
+    fillLight.position.set(-6, 6, -6);
+    studioLights.add(fillLight);
 
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x334155, 1.4);
-        hemiLight.position.set(0, 20, 0);
+    // Rim light for edge separation
+    const rimLight = new THREE.DirectionalLight(0x94a3b8, 0.8);
+    rimLight.position.set(0, -6, -8);
+    studioLights.add(rimLight);
 
-        const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
-        keyLight.position.set(6, 12, 8);
+    scene.add(studioLights);
 
-        const fillLight = new THREE.DirectionalLight(0xe2e8f0, 1.0);
-        fillLight.position.set(-6, 6, -6);
+    function createGradientTexture(topColor, bottomColor) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 16;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+      gradient.addColorStop(0, topColor);
+      gradient.addColorStop(1, bottomColor);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 16, 512);
 
-        lightGroup.add(hemiLight, keyLight, fillLight);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      return texture;
+    }
 
-      } else if (preset === 'sun') {
-        scene.background.set(0x1a2333);
-        renderer.toneMappingExposure = 1.25;
+    const bgTextures = {
+      sky: createGradientTexture('#0284c7', '#e0f2fe'),
+      sunset: createGradientTexture('#311042', '#f97316')
+    };
 
-        const skyAmbient = new THREE.HemisphereLight(0x7dd3fc, 0x3d352e, 1.2);
-        skyAmbient.position.set(0, 30, 0);
-
-        const sunDirect = new THREE.DirectionalLight(0xfff5e6, 3.2);
-        sunDirect.position.set(12, 22, 10);
-
-        const softBounce = new THREE.DirectionalLight(0x94a3b8, 0.6);
-        softBounce.position.set(-10, -5, -8);
-
-        lightGroup.add(skyAmbient, sunDirect, softBounce);
-
-      } else if (preset === 'dramatic') {
-        // High-contrast, vivid lighting setup that keeps meshes visible
-        scene.background.set(0x0c0e14);
-        renderer.toneMappingExposure = 1.35;
-
-        // Base ambient fill to eliminate black pitch-dark zones
-        const baseFill = new THREE.AmbientLight(0x475569, 1.4);
-
-        // Strong crisp top-front key light
-        const mainKey = new THREE.DirectionalLight(0xffffff, 3.5);
-        mainKey.position.set(7, 14, 9);
-
-        // Electric cyan rim light for sharp contours
-        const cyanRim = new THREE.DirectionalLight(0x38bdf8, 3.0);
-        cyanRim.position.set(-9, 8, -9);
-
-        // Warm magenta bounce for depth and dimensionality
-        const warmBounce = new THREE.DirectionalLight(0xf43f5e, 1.4);
-        warmBounce.position.set(-6, -4, 5);
-
-        lightGroup.add(baseFill, mainKey, cyanRim, warmBounce);
+    function applyBackgroundPreset(preset) {
+      if (preset === 'dark') {
+        scene.background = new THREE.Color(0x121214);
+      } else if (preset === 'sky') {
+        scene.background = bgTextures.sky;
+      } else if (preset === 'sunset') {
+        scene.background = bgTextures.sunset;
+      } else if (preset === 'clean') {
+        scene.background = new THREE.Color(0xf1f5f9);
       }
     }
 
-    applyLightingPreset('studio');
-
-    // 4. Draco & GLTF Loader Configuration
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
@@ -396,19 +384,18 @@
       (gltf) => {
         const model = gltf.scene;
 
-        // Calculate model bounding box and center
+        // Auto-center model at world origin
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
 
-        // Center model geometry to world origin (0, 0, 0)
         model.position.x += (model.position.x - center.x);
         model.position.y += (model.position.y - center.y);
         model.position.z += (model.position.z - center.z);
 
         scene.add(model);
 
-        // Fit camera to bounding box dimensions
+        // Frame camera automatically to model bounding box
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov = camera.fov * (Math.PI / 180);
         let cameraDist = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.55;
@@ -420,30 +407,31 @@
         initialCamState.pos.copy(camera.position);
         initialCamState.target.copy(controls.target);
 
-        // Fade out loader
+        // Smooth transition after loading completes
+        progressBar.style.width = '100%';
+        progressText.innerText = 'Ready!';
         overlay.style.opacity = '0';
         setTimeout(() => { overlay.style.display = 'none'; }, 500);
       },
       (xhr) => {
+        // STRICT REQUIREMENT: Only percentage displayed, NO MB/KB size revealed
         if (xhr.lengthComputable && xhr.total > 0) {
-          const percent = Math.round((xhr.loaded / xhr.total) * 100);
-          const loadedMb = (xhr.loaded / (1024 * 1024)).toFixed(1);
-          const totalMb = (xhr.total / (1024 * 1024)).toFixed(1);
+          const percent = Math.min(Math.round((xhr.loaded / xhr.total) * 100), 99);
           progressBar.style.width = percent + '%';
-          progressText.innerText = `Loading: ${loadedMb} MB / ${totalMb} MB (${percent}%)`;
+          progressText.innerText = `Loading 3D Model... ${percent}%`;
         } else {
-          const mb = (xhr.loaded / (1024 * 1024)).toFixed(1);
-          progressText.innerText = `Downloading: ${mb} MB loaded...`;
+          // Fallback animation when length is uncomputable
+          progressText.innerText = 'Loading 3D Model...';
+          progressBar.style.width = '70%';
         }
       },
       (error) => {
         console.error('Error loading model:', error);
-        progressText.innerText = 'Unable to load 3DModel-v1.glb. Verify file path.';
+        progressText.innerText = 'Unable to load model. Verify file path.';
         progressText.style.color = '#ef4444';
       }
     );
 
-    // 5. Mobile / Android Touch Sensor Notification Feedback
     const touchDot = document.getElementById('touch-dot');
     const touchLiveStatus = document.getElementById('touch-live-status');
     const touchSensorCard = document.getElementById('touch-sensor-card');
@@ -474,8 +462,7 @@
       setTimeout(() => { touchSensorCard.style.display = 'none'; }, 300);
     });
 
-    // 6. UI Button Event Handlers
-    // Auto-Rotate
+    // Auto-Rotate Button
     const btnAutoRotate = document.getElementById('btn-autorotate');
     btnAutoRotate.addEventListener('click', () => {
       controls.autoRotate = !controls.autoRotate;
@@ -488,23 +475,24 @@
       }
     });
 
-    // Light Presets
-    const lightBtns = [
-      { id: 'btn-studio', type: 'studio' },
-      { id: 'btn-sun', type: 'sun' },
-      { id: 'btn-dramatic', type: 'dramatic' }
+    // Background Scene Preset Buttons
+    const bgButtons = [
+      { id: 'btn-dark', type: 'dark' },
+      { id: 'btn-sky', type: 'sky' },
+      { id: 'btn-sunset', type: 'sunset' },
+      { id: 'btn-clean', type: 'clean' }
     ];
 
-    lightBtns.forEach(({ id, type }) => {
+    bgButtons.forEach(({ id, type }) => {
       const button = document.getElementById(id);
       button.addEventListener('click', () => {
-        lightBtns.forEach(b => document.getElementById(b.id).classList.remove('active'));
+        bgButtons.forEach(b => document.getElementById(b.id).classList.remove('active'));
         button.classList.add('active');
-        applyLightingPreset(type);
+        applyBackgroundPreset(type);
       });
     });
 
-    // Reset View
+    // Reset View Button
     document.getElementById('btn-reset').addEventListener('click', () => {
       camera.position.copy(initialCamState.pos);
       controls.target.copy(initialCamState.target);
@@ -518,7 +506,7 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // 8. Main Render Loop
+    // 8. Animation Render Loop
     function animate() {
       requestAnimationFrame(animate);
       controls.update();
